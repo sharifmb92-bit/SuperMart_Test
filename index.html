@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SuperMart v3.1.0-DEV (Test Escáner)</title>
+  <title>SuperMart v3.1.0-DEV (Test Escáner Multifoto)</title>
 
-  <!-- Estilos CSS Nativos de Respaldo (Garantiza que NUNCA salga la pantalla blanca) -->
+  <!-- Estilos CSS Nativos de Respaldo -->
   <style>
     body {
       background-color: #111827 !important;
@@ -29,7 +29,7 @@
     <div class="flex items-center space-x-2">
       <span class="text-2xl">🛒</span>
       <div>
-        <h1 class="font-bold text-amber-500 text-lg leading-tight">SuperMart <span class="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">DEV TEST</span></h1>
+        <h1 class="font-bold text-amber-500 text-lg leading-tight">SuperMart <span class="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">DEV MULTIFOTO</span></h1>
         <p class="text-[10px] text-gray-400">Modo prueba local de escáner OCR</p>
       </div>
     </div>
@@ -42,9 +42,9 @@
   <main class="max-w-md mx-auto p-4 space-y-4">
     <div class="bg-gray-800/80 border border-gray-700 rounded-2xl p-4 text-center space-y-3">
       <div class="text-4xl">🧾</div>
-      <h2 class="text-base font-bold text-gray-200">Prueba del Escáner de Tickets</h2>
+      <h2 class="text-base font-bold text-gray-200">Prueba del Escáner de Tickets (Multifoto)</h2>
       <p class="text-xs text-gray-400 leading-relaxed">
-        Toca el botón flotante inferior para fotografiar un recibo de supermercado. Los productos se leerán en tu dispositivo sin tocar la cuenta compartida.
+        Toca el botón flotante inferior para fotografiar un recibo por tramos si es muy largo. Los productos se irán sumando a la lista de prueba.
       </p>
       <button onclick="abrirModalEscaner()" class="w-full bg-amber-700 hover:bg-amber-800 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition-colors shadow-md flex items-center justify-center space-x-2">
         <span>📸 Probar Escáner Ahora</span>
@@ -86,7 +86,7 @@
         </div>
         <div>
           <h3 class="text-base font-bold text-amber-400">Escanear Ticket de Compra</h3>
-          <p class="text-xs text-gray-400">Extrae artículos y precios automáticamente</p>
+          <p class="text-xs text-gray-400">Escanea por tramos si el recibo es muy largo</p>
         </div>
       </div>
 
@@ -102,8 +102,8 @@
           <svg class="w-10 h-10 mx-auto text-amber-500/80 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
           </svg>
-          <p class="text-sm font-medium text-gray-200">Toca para fotografiar o subir ticket</p>
-          <p class="text-xs text-gray-400 mt-1">Soporta tickets de Mercadona, Carrefour, Eroski, etc.</p>
+          <p class="text-sm font-medium text-gray-200" id="texto-boton-captura">Toca para fotografiar ticket</p>
+          <p class="text-xs text-gray-400 mt-1">Acerca la cámara para asegurar una lectura clara</p>
         </div>
       </div>
 
@@ -111,16 +111,22 @@
       <div id="loader-escaner" class="hidden text-center my-4 p-4 bg-gray-800 rounded-xl border border-amber-600/30">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-amber-500 border-t-transparent mb-2"></div>
         <p class="text-sm text-amber-300 font-semibold" id="texto-progreso-ocr">Analizando ticket...</p>
-        <p class="text-xs text-gray-400 mt-1">El procesado se hace 100% en tu móvil</p>
+        <p class="text-xs text-gray-400 mt-1">Procesando tramo localmente</p>
       </div>
 
       <!-- Resultados Detectados -->
       <div id="contenedor-resultados-ticket" class="hidden my-4">
-        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex justify-between items-center">
-          <span>Productos Detectados</span>
-          <span id="total-detectados" class="text-amber-400">0 encontrados</span>
-        </h4>
+        <div class="flex justify-between items-center mb-2">
+          <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Productos Acumulados</h4>
+          <span id="total-detectados" class="text-amber-400 text-xs font-semibold">0 encontrados</span>
+        </div>
+        
         <div id="lista-items-detectados" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+
+        <!-- Botón para Escanear Siguiente Tramo del Mismo Ticket -->
+        <button onclick="document.getElementById('input-foto-ticket').click()" class="w-full mt-3 bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-700/50 py-2 px-3 rounded-xl text-xs font-medium transition-colors flex items-center justify-center space-x-2">
+          <span>📸 Añadir otro tramo del ticket</span>
+        </button>
       </div>
 
       <!-- Botones de Acción -->
@@ -159,6 +165,8 @@
       document.getElementById('contenedor-resultados-ticket').classList.add('hidden');
       document.getElementById('lista-items-detectados').innerHTML = '';
       document.getElementById('btn-guardar-ticket').disabled = true;
+      document.getElementById('texto-boton-captura').textContent = 'Toca para fotografiar ticket';
+      productosDetectadosTicket = [];
     }
 
     function procesarFotoTicket(event) {
@@ -182,15 +190,13 @@
       const btnGuardar = document.getElementById('btn-guardar-ticket');
 
       loader.classList.remove('hidden');
-      contenedorResultados.classList.add('hidden');
       btnGuardar.disabled = true;
-      productosDetectadosTicket = [];
 
       try {
         const worker = await Tesseract.createWorker('spa', 1, {
           logger: m => {
             if (m.status === 'recognizing text') {
-              textoProgreso.textContent = `Analizando ticket... ${Math.round((m.progress || 0) * 100)}%`;
+              textoProgreso.textContent = `Analizando foto... ${Math.round((m.progress || 0) * 100)}%`;
             }
           }
         });
@@ -199,6 +205,7 @@
         await worker.terminate();
 
         const regexPrecio = /(\d+[.,]\d{2})\s*$/;
+        let nuevosDetectados = 0;
 
         lines.forEach(linea => {
           const textoLimpio = linea.text.trim();
@@ -212,22 +219,31 @@
             const esTotalOFactura = /total|subtotal|iva|base|efectivo|tarjeta|fecha|gracias|caja|importe/i.test(nombre);
 
             if (nombre.length >= 3 && !isNaN(precio) && precio > 0 && !esTotalOFactura) {
-              productosDetectadosTicket.push({
-                nombre: capitalizarTexto(nombre),
-                precio: precio,
-                categoria: detectarCategoriaPorNombre(nombre)
-              });
+              const nombreCapitalizado = capitalizarTexto(nombre);
+              
+              // Evitar duplicados si reescaneas la misma zona
+              const yaExiste = productosDetectadosTicket.some(p => p.nombre.toLowerCase() === nombreCapitalizado.toLowerCase() && p.precio === precio);
+
+              if (!yaExiste) {
+                productosDetectadosTicket.push({
+                  nombre: nombreCapitalizado,
+                  precio: precio,
+                  categoria: detectarCategoriaPorNombre(nombreCapitalizado)
+                });
+                nuevosDetectados++;
+              }
             }
           }
         });
 
         loader.classList.add('hidden');
+        document.getElementById('texto-boton-captura').textContent = '📸 Añadir otra foto del ticket';
         renderizarProductosDetectados();
 
       } catch (error) {
         console.error('❌ Error OCR:', error);
         loader.classList.add('hidden');
-        alert('No se pudo procesar la imagen. Intenta enfocar con más luz.');
+        alert('No se pudo procesar esta foto. Intenta enfocar con más luz.');
       }
     }
 
@@ -238,10 +254,10 @@
       const btnGuardar = document.getElementById('btn-guardar-ticket');
 
       listaItems.innerHTML = '';
-      totalDetectados.textContent = `${productosDetectadosTicket.length} encontrados`;
+      totalDetectados.textContent = `${productosDetectadosTicket.length} acumulados`;
 
       if (productosDetectadosTicket.length === 0) {
-        listaItems.innerHTML = `<p class="text-xs text-gray-400 text-center py-3">No se reconocieron precios claros. Prueba con otra foto.</p>`;
+        listaItems.innerHTML = `<p class="text-xs text-gray-400 text-center py-3">No se reconocieron precios claros en esta foto.</p>`;
         contenedorResultados.classList.remove('hidden');
         return;
       }
@@ -302,7 +318,7 @@
     async function confirmarImportacionTicket() {
       if (productosDetectadosTicket.length === 0) return;
 
-      console.group('🧪 [DEV ESCÁNER] Importación completada');
+      console.group('🧪 [DEV ESCÁNER MULTIFOTO] Importación completada');
       console.table(productosDetectadosTicket);
       console.log('🔒 Firebase bloquado para proteger la cuenta de tu pareja.');
       console.groupEnd();
@@ -316,7 +332,7 @@
         registro.appendChild(p);
       });
 
-      alert(`🧪 [PRUEBA DEV EXITO]\n\nSe han procesado ${productosDetectadosTicket.length} productos localmente.\n\nRevisa el cuadro inferior en la pantalla.`);
+      alert(`🧪 [PRUEBA MULTIFOTO EXITO]\n\nSe han procesado un total de ${productosDetectadosTicket.length} productos acumulados.\n\nRevisa el cuadro inferior en la pantalla.`);
       cerrarModalEscaner();
     }
   </script>
